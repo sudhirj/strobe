@@ -28,6 +28,11 @@ func (s *Strobe) Pulse(message string) {
 	s.lock.Unlock()
 }
 
+//Count gives the number of listeners
+func (s *Strobe) Count() int {
+	return len(s.listeners)
+}
+
 //Off removes a channel from the list of receivers
 func (s *Strobe) Off(view <-chan string) {
 	s.lock.Lock()
