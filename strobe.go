@@ -11,21 +11,21 @@ type Strobe struct {
 
 //Listen creates a new receiver channel which acts as a subscription. In order to prevent leaks, always return a channel after use via `Forget`
 func (s *Strobe) Listen() <-chan string {
-	listener := make(chan string)
 	s.Lock()
+	defer s.Unlock()
+	listener := make(chan string)
 	s.listeners[listener] = true
 	s.views[listener] = listener
-	s.Unlock()
 	return listener
 }
 
 //Pulse sends a message to all listening channels
 func (s *Strobe) Pulse(message string) {
-	s.Lock()
+	s.RLock()
+	defer s.RUnlock()
 	for c := range s.listeners {
 		c <- message
 	}
-	s.Unlock()
 }
 
 //Count gives the number of listeners
@@ -36,9 +36,9 @@ func (s *Strobe) Count() int {
 //Off removes a channel from the list of receivers
 func (s *Strobe) Off(view <-chan string) {
 	s.Lock()
+	defer s.Unlock()
 	delete(s.listeners, s.views[view])
 	delete(s.views, view)
-	s.Unlock()
 }
 
 //NewStrobe creates a new Strobe that can be used for PubSub
