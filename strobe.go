@@ -2,8 +2,8 @@ package strobe
 
 import "sync"
 
-type ClosableListener interface {
-	Next() string
+type ClosableReceiver interface {
+	Receiver() <-chan string
 	Close()
 }
 
@@ -12,8 +12,8 @@ type listener struct {
 	closer  chan bool
 }
 
-func (l *listener) Next() string {
-	return <-l.channel
+func (l *listener) Receiver() <-chan string {
+	return l.channel
 }
 
 func (l *listener) Close() {
@@ -27,7 +27,7 @@ type Strobe struct {
 }
 
 //Listen creates a new receiver channel which acts as a subscription. In order to prevent leaks, always return a channel after use via `Forget`
-func (s *Strobe) Listen() ClosableListener {
+func (s *Strobe) Listen() ClosableReceiver {
 	l := listener{channel: make(chan string), closer: make(chan bool)}
 	s.Lock()
 	s.listeners[l] = true

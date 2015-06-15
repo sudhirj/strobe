@@ -13,8 +13,8 @@ func TestPulse(t *testing.T) {
 		waiter.Add(1)
 		listener := strobe.Listen()
 		defer listener.Close()
-		go func(t *testing.T, waiter *sync.WaitGroup, listener ClosableListener) {
-			message := listener.Next()
+		go func(t *testing.T, waiter *sync.WaitGroup, listener ClosableReceiver) {
+			message := <-listener.Receiver()
 			if message == "PULSE" {
 				waiter.Done()
 			}
@@ -27,7 +27,7 @@ func TestPulse(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func(t *testing.T, waiter *sync.WaitGroup, stb *Strobe) {
 			waiter.Add(1)
-			message := stb.Listen().Next()
+			message := <-stb.Listen().Receiver()
 			if message == "PULSE" {
 				waiter.Done()
 			}
@@ -37,7 +37,7 @@ func TestPulse(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func(t *testing.T, waiter *sync.WaitGroup) {
 			waiter.Add(1)
-			message := strobe.Listen().Next()
+			message := <-strobe.Listen().Receiver()
 			if message == "PULSE" {
 				waiter.Done()
 			}
@@ -47,7 +47,7 @@ func TestPulse(t *testing.T) {
 	forgottenListener := strobe.Listen()
 	forgottenListener.Close()
 	go func() {
-		message := forgottenListener.Next()
+		message := <-forgottenListener.Receiver()
 		if message != "" {
 			t.Error("should not have sent on this channel")
 		}
@@ -75,7 +75,7 @@ func TestMessaging(t *testing.T) {
 	strobe := NewStrobe()
 	c1 := make(chan bool)
 	go func() {
-		message := strobe.Listen().Next()
+		message := <-strobe.Listen().Receiver()
 		if message == "M1" {
 			c1 <- true
 		}
