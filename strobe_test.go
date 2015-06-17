@@ -1,6 +1,7 @@
 package strobe
 
 import (
+	"log"
 	"sync"
 	"testing"
 	"time"
@@ -92,5 +93,33 @@ func TestMessaging(t *testing.T) {
 		t.Error("no message")
 	}()
 	<-c1
+}
 
+func Example() {
+	strobe := NewStrobe()
+	w := &sync.WaitGroup{}
+	w.Add(3)
+	go func() {
+		message := <-strobe.Listen().Receiver()
+		log.Println(message)
+		w.Done()
+	}()
+	go func() {
+		message := <-strobe.Listen().Receiver()
+		log.Println(message)
+		w.Done()
+	}()
+	go func() {
+		message := <-strobe.Listen().Receiver()
+		log.Println(message)
+		w.Done()
+	}()
+
+	strobe.Pulse("PING")
+	w.Wait()
+
+	// Output:
+	// PING
+	// PING
+	// PING
 }
