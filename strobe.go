@@ -45,7 +45,8 @@ func (s *Strobe) Listen() ClosableReceiver {
 	return &l
 }
 
-// Pulse sends a message to all listening channels
+// Pulse sends a message to all listening channels that have been checked out
+// with Listen().
 func (s *Strobe) Pulse(message string) {
 	s.lock.Lock()
 	for c := range s.listeners {
@@ -56,12 +57,12 @@ func (s *Strobe) Pulse(message string) {
 	s.lock.Unlock()
 }
 
-// Count the number of active listeners on this strobe
+// Count the number of active listeners on this strobe.
 func (s *Strobe) Count() int {
 	return len(s.listeners)
 }
 
-//NewStrobe creates a new Strobe that can be used for PubSub
+// NewStrobe creates a new Strobe.
 func NewStrobe() *Strobe {
 	return &Strobe{listeners: make(map[listener]bool)}
 }
