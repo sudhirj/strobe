@@ -27,7 +27,7 @@ type Strobe struct {
 	lock      sync.Mutex
 }
 
-// Listen creates a new ClosableReceiver on which holds receiver channel on
+// Listen creates a new ClosableReceiver on which holds a channel on
 // which messages can be received. Close() must be called after usage.
 func (s *Strobe) Listen() ClosableReceiver {
 	l := listener{channel: make(chan string), closer: make(chan bool)}
