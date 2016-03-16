@@ -2,14 +2,12 @@ package strobe
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
 )
 
 func TestPulse(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	strobe := NewStrobe()
 	waiter := &sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
