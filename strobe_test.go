@@ -2,6 +2,8 @@ package strobe
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -70,6 +72,30 @@ func TestPulse(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Error("No pulse received")
 	}
+}
+
+func TestRaceConditions(t *testing.T) {
+	strobe := NewStrobe()
+	go func() {
+		for index := 0; index < 1000; index++ {
+			go strobe.Count()
+		}
+	}()
+	go func() {
+		for index := 0; index < 1000; index++ {
+			l := strobe.Listen()
+			if math.Remainder(float64(index), 2.0) == 0 {
+				go l.Close()
+			} else {
+				defer l.Close()
+			}
+		}
+	}()
+	go func() {
+		for index := 0; index < 1000; index++ {
+			go strobe.Pulse(strconv.Itoa(index))
+		}
+	}()
 }
 
 func TestMessaging(t *testing.T) {

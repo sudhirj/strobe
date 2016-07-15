@@ -50,15 +50,21 @@ func (s *Strobe) Listen() ClosableReceiver {
 func (s *Strobe) Pulse(message string) {
 	s.lock.Lock()
 	for c := range s.listeners {
-		go func(ch chan string, m string) {
-			ch <- message
-		}(c.channel, message)
+		go func(l listener, m string) {
+			s.lock.Lock()
+			if _, ok := s.listeners[l]; ok {
+				l.channel <- message
+			}
+			s.lock.Unlock()
+		}(c, message)
 	}
 	s.lock.Unlock()
 }
 
 // Count the number of active listeners on this strobe.
 func (s *Strobe) Count() int {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	return len(s.listeners)
 }
 
