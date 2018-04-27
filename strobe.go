@@ -10,7 +10,7 @@ type ClosableReceiver interface {
 
 type listener struct {
 	channel chan string
-	closer  chan bool
+	closer  chan struct{}
 }
 
 func (l *listener) Receiver() <-chan string {
@@ -18,7 +18,7 @@ func (l *listener) Receiver() <-chan string {
 }
 
 func (l *listener) Close() {
-	l.closer <- true
+	close(l.closer)
 }
 
 // Strobe is an emitter that allows broadcasting messages by channel fan-out.
@@ -30,7 +30,7 @@ type Strobe struct {
 // Listen creates a new ClosableReceiver on which holds a channel on
 // which messages can be received. Close() must be called after usage.
 func (s *Strobe) Listen() ClosableReceiver {
-	l := listener{channel: make(chan string), closer: make(chan bool)}
+	l := listener{channel: make(chan string), closer: make(chan struct{})}
 	s.lock.Lock()
 	s.listeners[l] = true
 	s.lock.Unlock()
@@ -40,7 +40,6 @@ func (s *Strobe) Listen() ClosableReceiver {
 		delete(s.listeners, l)
 		s.lock.Unlock()
 		close(l.channel)
-		close(l.closer)
 	}()
 	return &l
 }
