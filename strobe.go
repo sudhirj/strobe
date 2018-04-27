@@ -23,7 +23,7 @@ func (l *listener) Close() {
 
 // Strobe is an emitter that allows broadcasting messages by channel fan-out.
 type Strobe struct {
-	listeners map[listener]bool
+	listeners map[listener]struct{}
 	lock      sync.Mutex
 }
 
@@ -32,7 +32,7 @@ type Strobe struct {
 func (s *Strobe) Listen() ClosableReceiver {
 	l := listener{channel: make(chan string), closer: make(chan struct{})}
 	s.lock.Lock()
-	s.listeners[l] = true
+	s.listeners[l] = struct{}{}
 	s.lock.Unlock()
 	go func() {
 		<-l.closer
@@ -69,5 +69,5 @@ func (s *Strobe) Count() int {
 
 // NewStrobe creates a new Strobe.
 func NewStrobe() *Strobe {
-	return &Strobe{listeners: make(map[listener]bool)}
+	return &Strobe{listeners: make(map[listener]struct{})}
 }
