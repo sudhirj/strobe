@@ -102,9 +102,9 @@ func TestMessaging(t *testing.T) {
 	strobe := NewStrobe()
 
 	strobe.Listen() // Creating a channel but not listening on it
-
+	readySignal := make(chan struct{})
 	go func() {
-		<-time.After(10 * time.Millisecond)
+		<-readySignal
 		strobe.Pulse("M1")
 	}()
 
@@ -113,8 +113,10 @@ func TestMessaging(t *testing.T) {
 		if message != "M1" {
 			t.Error("wrong message received")
 		}
-	case <-time.After(1 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Error("no message received")
+	case readySignal <- struct{}{}:
+		// Signals the sender that the select case is ready
 	}
 }
 
