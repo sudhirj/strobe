@@ -52,7 +52,7 @@ func (s *Strobe) Pulse(message string) {
 		go func(l listener, m string) {
 			s.lock.Lock()
 			if _, ok := s.listeners[l]; ok {
-				l.channel <- message
+				l.channel <- m
 			}
 			s.lock.Unlock()
 		}(c, message)
@@ -69,5 +69,8 @@ func (s *Strobe) Count() int {
 
 // NewStrobe creates a new Strobe.
 func NewStrobe() *Strobe {
-	return &Strobe{listeners: make(map[listener]struct{})}
+	return &Strobe{
+		listeners: make(map[listener]struct{}),
+		lock:      sync.Mutex{},
+	}
 }
