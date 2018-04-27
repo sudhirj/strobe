@@ -100,13 +100,6 @@ func TestRaceConditions(t *testing.T) {
 
 func TestMessaging(t *testing.T) {
 	strobe := NewStrobe()
-	c1 := make(chan bool)
-	go func() {
-		message := <-strobe.Listen().Receiver()
-		if message == "M1" {
-			c1 <- true
-		}
-	}()
 
 	strobe.Listen() // Creating a channel but not listening on it
 
@@ -114,11 +107,15 @@ func TestMessaging(t *testing.T) {
 		<-time.After(10 * time.Millisecond)
 		strobe.Pulse("M1")
 	}()
-	go func() {
-		<-time.After(1 * time.Second)
-		t.Error("no message")
-	}()
-	<-c1
+
+	select {
+	case message := <-strobe.Listen().Receiver():
+		if message != "M1" {
+			t.Error("wrong message received")
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("no message received")
+	}
 }
 
 func Example() {
