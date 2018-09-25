@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-var sendTimeout = 1 * time.Second
+const sendTimeout = 1 * time.Second
 
 // ClosableReceiver provides a read only channel that needs to be closed after use.
 type ClosableReceiver interface {
