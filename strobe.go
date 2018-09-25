@@ -1,6 +1,12 @@
 package strobe
 
-import "sync"
+import (
+	"sync"
+	"time"
+	"log"
+)
+
+const sendTimeout = 1 * time.Second
 
 // ClosableReceiver provides a read only channel that needs to be closed after use.
 type ClosableReceiver interface {
@@ -74,9 +80,23 @@ func (s *Strobe) waitForClose(l listener) {
 }
 
 func (s *Strobe) send(l listener, message string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if _, ok := s.listeners[l]; ok {
-		l.channel <- message
-	}
+    s.lock.Lock()
+    defer s.lock.Unlock()
+    t := time.NewTimer(sendTimeout)
+
+    if _, ok := s.listeners[l]; ok {
+        select {
+        case l.channel <- message:
+        default:
+            t.Reset(sendTimeout)
+            select {
+                    case l.channel <- message:
+                    case <-t.C:
+                        log.Printf("send timed out on %v\n", l)
+            }
+            if !t.Stop() {
+                <-t.C
+            }
+        }
+    }
 }
