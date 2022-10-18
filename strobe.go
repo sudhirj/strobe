@@ -2,34 +2,34 @@ package strobe
 
 import "sync"
 
-// ClosableReceiver provides a read only channel that needs to be closed after use.
-type ClosableReceiver interface {
-	Receiver() <-chan string
+// ReceiveCloser provides a read only channel that needs to be closed after use.
+type ReceiveCloser[T any] interface {
+	Receiver() <-chan T
 	Close()
 }
 
 // Get the channel on which messages are received
-func (l *listener) Receiver() <-chan string {
+func (l *listener[T]) Receiver() <-chan T {
 	return l.channel
 }
 
 // Close this receiver
-func (l *listener) Close() {
+func (l *listener[T]) Close() {
 	close(l.closer)
 }
 
 // NewStrobe creates a new Strobe.
-func NewStrobe() *Strobe {
-	return &Strobe{
-		listeners: make(map[listener]struct{}),
+func NewStrobe[T any]() *Strobe[T] {
+	return &Strobe[T]{
+		listeners: make(map[listener[T]]struct{}),
 		lock:      sync.Mutex{},
 	}
 }
 
-// Listen creates a new ClosableReceiver on which holds a channel on
-// which messages can be received. Close() must be called after usage.
-func (s *Strobe) Listen() ClosableReceiver {
-	l := listener{channel: make(chan string), closer: make(chan struct{})}
+// Listen creates a new ReceiveCloser on which Pulsed messages can be read.
+// Close() must be called after usage.
+func (s *Strobe[T]) Listen() ReceiveCloser[T] {
+	l := listener[T]{channel: make(chan T), closer: make(chan struct{})}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.listeners[l] = struct{}{}
@@ -37,9 +37,8 @@ func (s *Strobe) Listen() ClosableReceiver {
 	return &l
 }
 
-// Pulse sends a message to all listening channels that have been checked out
-// with Listen().
-func (s *Strobe) Pulse(message string) {
+// Pulse sends a message to all listening channels created by Listen().
+func (s *Strobe[T]) Pulse(message T) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	for l := range s.listeners {
@@ -48,24 +47,24 @@ func (s *Strobe) Pulse(message string) {
 }
 
 // Count the number of active listeners on this Strobe.
-func (s *Strobe) Count() int {
+func (s *Strobe[T]) Count() int {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	return len(s.listeners)
 }
 
 // Strobe is an emitter that allows broadcasting messages by channel fan-out.
-type Strobe struct {
-	listeners map[listener]struct{}
+type Strobe[T any] struct {
+	listeners map[listener[T]]struct{}
 	lock      sync.Mutex
 }
 
-type listener struct {
-	channel chan string
+type listener[T any] struct {
+	channel chan T
 	closer  chan struct{}
 }
 
-func (s *Strobe) waitForClose(l listener) {
+func (s *Strobe[T]) waitForClose(l listener[T]) {
 	<-l.closer
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -73,10 +72,11 @@ func (s *Strobe) waitForClose(l listener) {
 	close(l.channel)
 }
 
-func (s *Strobe) send(l listener, message string) {
+func (s *Strobe[T]) send(l listener[T], message T) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if _, ok := s.listeners[l]; ok {
 		l.channel <- message
 	}
 }
+

@@ -10,13 +10,13 @@ import (
 )
 
 func TestPulse(t *testing.T) {
-	strobe := NewStrobe()
+	strobe := NewStrobe[string]()
 	waiter := &sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
 		waiter.Add(1)
 		listener := strobe.Listen()
 		defer listener.Close()
-		go func(t *testing.T, waiter *sync.WaitGroup, listener ClosableReceiver) {
+		go func(t *testing.T, waiter *sync.WaitGroup, listener ReceiveCloser[string]) {
 			message := <-listener.Receiver()
 			if message == "PULSE" {
 				waiter.Done()
@@ -28,7 +28,7 @@ func TestPulse(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
-		go func(t *testing.T, waiter *sync.WaitGroup, stb *Strobe) {
+		go func(t *testing.T, waiter *sync.WaitGroup, stb *Strobe[string]) {
 			waiter.Add(1)
 			message := <-stb.Listen().Receiver()
 			if message == "PULSE" {
@@ -75,7 +75,7 @@ func TestPulse(t *testing.T) {
 }
 
 func TestRaceConditions(t *testing.T) {
-	strobe := NewStrobe()
+	strobe := NewStrobe[string]()
 	go func() {
 		for index := 0; index < 1000; index++ {
 			go strobe.Count()
@@ -99,7 +99,7 @@ func TestRaceConditions(t *testing.T) {
 }
 
 func TestMessaging(t *testing.T) {
-	strobe := NewStrobe()
+	strobe := NewStrobe[string]()
 
 	strobe.Listen() // Creating a channel but not listening on it
 	readySignal := make(chan struct{})
@@ -121,23 +121,23 @@ func TestMessaging(t *testing.T) {
 }
 
 func Example() {
-	s := NewStrobe()
+	s := NewStrobe[string]()
 	w := &sync.WaitGroup{}
 	w.Add(3)
 
-	go func(listener ClosableReceiver) {
+	go func(listener ReceiveCloser[string]) {
 		message := <-listener.Receiver()
 		fmt.Println(message)
 		listener.Close()
 		w.Done()
 	}(s.Listen())
-	go func(listener ClosableReceiver) {
+	go func(listener ReceiveCloser[string]) {
 		message := <-listener.Receiver()
 		fmt.Println(message)
 		listener.Close()
 		w.Done()
 	}(s.Listen())
-	go func(listener ClosableReceiver) {
+	go func(listener ReceiveCloser[string]) {
 		message := <-listener.Receiver()
 		fmt.Println(message)
 		listener.Close()
