@@ -28,8 +28,8 @@ func TestPulse(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
+		waiter.Add(1)
 		go func(t *testing.T, waiter *sync.WaitGroup, stb *Strobe[string]) {
-			waiter.Add(1)
 			message := <-stb.Listen().Receiver()
 			if message == "PULSE" {
 				waiter.Done()
@@ -38,8 +38,8 @@ func TestPulse(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
+		waiter.Add(1)
 		go func(t *testing.T, waiter *sync.WaitGroup) {
-			waiter.Add(1)
 			message := <-strobe.Listen().Receiver()
 			if message == "PULSE" {
 				waiter.Done()
