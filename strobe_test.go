@@ -10,7 +10,7 @@ import (
 )
 
 func TestPulse(t *testing.T) {
-	strobe := NewStrobe[string]()
+	strobe := New[string]()
 	waiter := &sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
 		waiter.Add(1)
@@ -75,7 +75,7 @@ func TestPulse(t *testing.T) {
 }
 
 func TestRaceConditions(t *testing.T) {
-	strobe := NewStrobe[string]()
+	strobe := New[string]()
 	go func() {
 		for index := 0; index < 1000; index++ {
 			go strobe.Count()
@@ -99,7 +99,7 @@ func TestRaceConditions(t *testing.T) {
 }
 
 func TestMessaging(t *testing.T) {
-	strobe := NewStrobe[string]()
+	strobe := New[string]()
 
 	strobe.Listen() // Creating a channel but not listening on it
 	readySignal := make(chan struct{})
@@ -121,7 +121,7 @@ func TestMessaging(t *testing.T) {
 }
 
 func Example() {
-	s := NewStrobe[string]()
+	s := New[string]()
 	w := &sync.WaitGroup{}
 	w.Add(3)
 

@@ -18,8 +18,8 @@ func (l *listener[T]) Close() {
 	close(l.closer)
 }
 
-// NewStrobe creates a new Strobe.
-func NewStrobe[T any]() *Strobe[T] {
+// New creates a new Strobe.
+func New[T any]() *Strobe[T] {
 	return &Strobe[T]{
 		listeners: make(map[listener[T]]struct{}),
 		lock:      sync.Mutex{},
