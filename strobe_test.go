@@ -78,8 +78,9 @@ func TestPulse(t *testing.T) {
 
 func TestListenerRaces(t *testing.T) {
 	const n = 1000
-	cancels := make([]context.CancelFunc, 0, n)
+
 	sb := New[struct{}]()
+	cancels := make([]context.CancelFunc, 0, n)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -87,7 +88,6 @@ func TestListenerRaces(t *testing.T) {
 	// create n listeners
 	for i := 0; i < n; i++ {
 		lCtx, lCancel := context.WithCancel(ctx)
-		defer lCancel()
 		sb.Listener(lCtx)
 		cancels = append(cancels, lCancel)
 	}
