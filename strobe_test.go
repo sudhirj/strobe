@@ -1,9 +1,8 @@
 package strobe
 
 import (
+	"context"
 	"fmt"
-	"math"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -12,12 +11,14 @@ import (
 func TestPulse(t *testing.T) {
 	strobe := New[string]()
 	waiter := &sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for i := 0; i < 100; i++ {
 		waiter.Add(1)
-		listener := strobe.Listen()
-		defer listener.Close()
-		go func(t *testing.T, waiter *sync.WaitGroup, listener ReceiveCloser[string]) {
-			message := <-listener.Receiver()
+		listener := strobe.Listener(ctx)
+		go func(t *testing.T, waiter *sync.WaitGroup, listener <-chan string) {
+			message := <-listener
 			if message == "PULSE" {
 				waiter.Done()
 			}
@@ -30,7 +31,7 @@ func TestPulse(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		waiter.Add(1)
 		go func(t *testing.T, waiter *sync.WaitGroup, stb *Strobe[string]) {
-			message := <-stb.Listen().Receiver()
+			message := <-stb.Listener(ctx)
 			if message == "PULSE" {
 				waiter.Done()
 			}
@@ -40,17 +41,18 @@ func TestPulse(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		waiter.Add(1)
 		go func(t *testing.T, waiter *sync.WaitGroup) {
-			message := <-strobe.Listen().Receiver()
+			message := <-strobe.Listener(ctx)
 			if message == "PULSE" {
 				waiter.Done()
 			}
 		}(t, waiter)
 	}
 
-	forgottenListener := strobe.Listen()
-	forgottenListener.Close()
+	forgetCtx, forgetCancel := context.WithCancel(context.Background())
+	forgottenListener := strobe.Listener(forgetCtx)
+	forgetCancel()
 	go func() {
-		message := <-forgottenListener.Receiver()
+		message := <-forgottenListener
 		if message != "" {
 			t.Error("should not have sent on this channel")
 		}
@@ -74,75 +76,29 @@ func TestPulse(t *testing.T) {
 	}
 }
 
-func TestRaceConditions(t *testing.T) {
-	strobe := New[string]()
-	go func() {
-		for index := 0; index < 1000; index++ {
-			go strobe.Count()
-		}
-	}()
-	go func() {
-		for index := 0; index < 1000; index++ {
-			l := strobe.Listen()
-			if math.Remainder(float64(index), 2.0) == 0 {
-				go l.Close()
-			} else {
-				defer l.Close()
-			}
-		}
-	}()
-	go func() {
-		for index := 0; index < 1000; index++ {
-			go strobe.Pulse(strconv.Itoa(index))
-		}
-	}()
-}
-
-func TestMessaging(t *testing.T) {
-	strobe := New[string]()
-
-	strobe.Listen() // Creating a channel but not listening on it
-	readySignal := make(chan struct{})
-	go func() {
-		<-readySignal
-		strobe.Pulse("M1")
-	}()
-
-	select {
-	case message := <-strobe.Listen().Receiver():
-		if message != "M1" {
-			t.Error("wrong message received")
-		}
-	case <-time.After(10 * time.Second):
-		t.Error("no message received")
-	case readySignal <- struct{}{}:
-		// Signals the sender that the select case is ready
-	}
-}
-
 func Example() {
 	s := New[string]()
 	w := &sync.WaitGroup{}
 	w.Add(3)
 
-	go func(listener ReceiveCloser[string]) {
-		message := <-listener.Receiver()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func(listener <-chan string) {
+		message := <-listener
 		fmt.Println(message)
-		listener.Close()
 		w.Done()
-	}(s.Listen())
-	go func(listener ReceiveCloser[string]) {
-		message := <-listener.Receiver()
+	}(s.Listener(ctx))
+	go func(listener <-chan string) {
+		message := <-listener
 		fmt.Println(message)
-		listener.Close()
 		w.Done()
-	}(s.Listen())
-	go func(listener ReceiveCloser[string]) {
-		message := <-listener.Receiver()
+	}(s.Listener(ctx))
+	go func(listener <-chan string) {
+		message := <-listener
 		fmt.Println(message)
-		listener.Close()
 		w.Done()
-	}(s.Listen())
+	}(s.Listener(ctx))
 
 	s.Pulse("PING")
 	w.Wait()

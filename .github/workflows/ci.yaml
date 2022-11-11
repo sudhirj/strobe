@@ -29,4 +29,3 @@ jobs:
           version: ${{ env.golangcilint_version }}
       - name: Test
         run: go test -race -cover ./...
-
