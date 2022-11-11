@@ -23,10 +23,10 @@ func New[T any]() *Strobe[T] {
 // The listener closes when ctx is cancelled.
 func (s *Strobe[T]) Listener(ctx context.Context) <-chan T {
 	l := make(chan T)
-	go s.waitForClose(ctx, l)
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.listeners[l] = struct{}{}
+	go s.waitForClose(ctx, l)
 	return l
 }
 
