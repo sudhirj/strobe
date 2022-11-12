@@ -105,31 +105,25 @@ func TestListenerRaces(t *testing.T) {
 	}()
 }
 
-func Example() {
-	s := New[string]()
+func ExampleStrobe() {
+	sb := New[string]()
 	w := &sync.WaitGroup{}
+
+	listenPrinter := func(l <-chan string) {
+		fmt.Println(<-l)
+		w.Done()
+	}
+
 	w.Add(3)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go func(listener <-chan string) {
-		message := <-listener
-		fmt.Println(message)
-		w.Done()
-	}(s.Listener(ctx))
-	go func(listener <-chan string) {
-		message := <-listener
-		fmt.Println(message)
-		w.Done()
-	}(s.Listener(ctx))
-	go func(listener <-chan string) {
-		message := <-listener
-		fmt.Println(message)
-		w.Done()
-	}(s.Listener(ctx))
+	go listenPrinter(sb.Listener(ctx))
+	go listenPrinter(sb.Listener(ctx))
+	go listenPrinter(sb.Listener(ctx))
 
-	s.Pulse("PING")
+	sb.Pulse("PING")
 	w.Wait()
 
 	// Output:
