@@ -20,7 +20,7 @@ func New[T any]() *Strobe[T] {
 }
 
 // Listener returns a channel which receives pulsed messages from the strobe.
-// The listener closes when ctx is cancelled.
+// The channel will be closed when ctx is cancelled.
 func (s *Strobe[T]) Listener(ctx context.Context) <-chan T {
 	l := make(chan T)
 	s.lock.Lock()
