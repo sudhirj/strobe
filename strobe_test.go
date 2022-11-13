@@ -92,10 +92,11 @@ func TestListenerRaces(t *testing.T) {
 		cancels = append(cancels, lCancel)
 	}
 
-	// race listener ctx cancel with Pulse
+	// race listener ctx cancel with Pulse & Count
 	go func() {
 		for i := 0; i < 10000; i++ {
 			sb.Pulse(struct{}{})
+			sb.Count()
 		}
 	}()
 	go func() {
